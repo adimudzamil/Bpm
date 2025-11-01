@@ -185,7 +185,13 @@
             background: #fff;
         }
 
-        /* Print-specific optimizations */
+        .infant-meal {
+            font-size: 8px;
+            color: #666;
+            display: block;
+            margin-top: 2px;
+        }
+
         @media print {
             body {
                 background: white;
@@ -245,7 +251,10 @@
                 margin-bottom: 5px;
             }
             
-            /* Multi-column layout for narrowbody to save space */
+            .infant-meal {
+                font-size: 6px;
+            }
+            
             .narrowbody-wrapper {
                 max-width: 100%;
             }
@@ -254,19 +263,16 @@
                 max-width: 100%;
             }
             
-            /* Compact layout for better paper usage */
             @page {
                 size: A4;
                 margin: 0.5cm;
             }
             
-            /* Hide non-essential elements in print */
             .instructions, .acknowledgments {
                 display: none;
             }
         }
 
-        /* Print button in output section */
         #printOutputBtn {
             display: none;
             margin: 10px 0;
@@ -275,7 +281,6 @@
             width: 100%;
         }
 
-        /* Multi-column layout for printing long lists */
         @media print and (min-width: 1px) {
             .tables-container.compact-layout {
                 column-count: 2;
@@ -289,13 +294,11 @@
                 margin-bottom: 10px;
             }
             
-            /* For very long lists, use 3 columns */
             .tables-container.very-compact {
                 column-count: 3;
             }
         }
 
-        /* Instructions styling */
         .instructions {
             margin-top: 30px;
             padding: 15px;
@@ -311,6 +314,18 @@
             font-size: 11px;
             line-height: 1.6;
         }
+
+        @media (max-width: 768px) {
+            button {
+                min-height: 44px;
+                font-size: 16px;
+            }
+            
+            textarea {
+                font-size: 16px;
+                min-height: 200px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -318,9 +333,9 @@
         <h1>PASSENGER MEAL & TIER REPORT by *2100551*</h1>
         
         <div class="input-section">
-            <textarea id="manifestInput" placeholder="Paste passenger manifest here..."></textarea>
+            <textarea id="manifestInput" placeholder="Paste passenger manifest here..." aria-label="Passenger manifest input"></textarea>
             <div class="button-group">
-                <button onclick="generateReport()">Generate Report</button>
+                <button onclick="generateReport()" aria-label="Generate passenger report">Generate Report</button>
                 <button onclick="clearAll()">Clear</button>
                 <button onclick="window.print()">Print Current Page</button>
             </div>
@@ -341,15 +356,13 @@
                         <li>On android mobile, must use xclipper available on play store due to android copy limit restrictions:
                   Long press on the flight number(FLT NBR), select all, then use xcopy from xclipper or drag to select all passenger data down to "Showing X entries"</li>
                   <li>On iOS: Select from FLT NBR until end of pax list > copy</li>
-                  <li>
-                    On
-                    desktop: Click before flight number (FLT NBR), hold Shift, scroll down and click after "Showing X entries"</li>
+                  <li>On desktop: Click before flight number (FLT NBR), hold Shift, scroll down and click after "Showing X entries"</li>
                     </ul>
                 </li>
                 <li style="margin-bottom: 8px;"><strong>Copy:</strong> Tap/Click "Copy" from the menu</li>
                 <li style="margin-bottom: 8px;"><strong>Paste Here:</strong> Tap/Click in the text box above and paste (Ctrl+V or long press → Paste)</li>
-                <li style="margin-bottom: 8px;"><strong>Generate:</strong> Click "Generate Report" button</li>
-                <li style="margin-bottom: 8px;"><strong>Print:</strong> Use "Print Report Only" button for paper-saving print</li>
+                <li style="margin-bottom: 8px;"><strong>Generate:</strong> Click "Generate Report" button (or press Ctrl+Enter)</li>
+                <li style="margin-bottom: 8px;"><strong>Print:</strong> Use "Print Report Only" button for paper-saving print (or press Ctrl+P)</li>
             </ol>
             
             <p style="margin-top: 15px;"><strong>Printing Tips:</strong></p>
@@ -360,9 +373,13 @@
                 <li>Use "Save as PDF" option to save digitally</li>
                 <li>Android> share print> save as pdf</li>
                 <li>iOS> 3 dots> share> options> send as pdf</li>
-                <p style="margin-top: 15px;"><strong>BUGs:</strong></p>
-<ul style="margin-left: 20px;">
-                <li><Strong>Known Bugs only for BBML if the parents also have SPML, so check for BBML if the name doesn't appear in the generated list, add manually. I'll fix it when i'm free </Strong></li>
+            </ul>
+            
+            <p style="margin-top: 15px;"><strong>Updates in v1.2:</strong></p>
+            <ul style="margin-left: 20px;">
+                <li><strong>FIXED:</strong> BBML now displays correctly even when parent has SPML (e.g., AVML,BBML)</li>
+                <li><strong>NEW:</strong> Keyboard shortcuts - Ctrl+Enter to generate, Ctrl+P to print</li>
+                <li><strong>NEW:</strong> Separate infant meal count in statistics</li>
             </ul>
         </div>
         
@@ -384,22 +401,41 @@
             <p style="margin-top: 10px; font-style: italic;">Thank you all for your help during testing and for helping make this tool better for everyone! ✈️</p>
             
             <p style="margin-top: 15px; font-size: 10px; color: #666;">
-                Version 1.1 | Created for cabin crew meal service | Print-optimized layout | 
-                Any bugs or feedback please contact Zayn Ikhlas when he is 21.
+                Version 1.2 | Created for cabin crew meal service | Print-optimized layout | BBML bug fixed!
+                <br>Any bugs or feedback please contact Zayn Ikhlas when he is 21.
             </p>
         </div>
     </div>
 
     <script>
+        const SEAT_PATTERN = /^\d{2}[A-K]$/i;
+        const PNR_PATTERN = /^[A-Z0-9]{6,7}$/i;
+        const CLASS_PATTERN = /^[JY]$/i;
+        const FQTV_PATTERN = /^\d{6,12}$|^MH\d+$/i;
+        
+        function sanitizeInput(text) {
+            return text
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                .replace(/\u00A0/g, ' ')
+                .trim();
+        }
+        
+        function parseMealField(mealString) {
+            if (!mealString) return { parent: '', infant: '', combined: '' };
+            
+            const meals = mealString.split(',').map(m => m.trim());
+            
+            return {
+                parent: meals.find(m => m !== 'BBML') || '',
+                infant: meals.find(m => m === 'BBML') || '',
+                combined: mealString
+            };
+        }
+        
         function parseManifest(text) {
-            // Normalize line endings (handle \r\n, \r, and \n)
-            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            
-            // Remove any zero-width spaces or invisible characters that iOS might add
-            text = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
-            
-            // Remove any non-breaking spaces
-            text = text.replace(/\u00A0/g, ' ');
+            text = sanitizeInput(text);
             
             const lines = text.split('\n').map(l => l.trim()).filter(l => l !== '');
             const passengers = [];
@@ -411,7 +447,6 @@
                 stdLocal: ''
             };
             
-            // Extract flight info
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i] === 'FLT NBR' && i + 1 < lines.length) {
                     flightInfo.flightNumber = lines[i + 1];
@@ -431,12 +466,8 @@
                 }
             }
             
-            // Find where passenger data starts
-            // iOS format: starts after "Passenger & Meal Count"
-            // Android format: starts after "MEALS" header
             let startIndex = -1;
             
-            // Try to find "MEALS" header (Android format)
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i] === 'MEALS') {
                     startIndex = i + 1;
@@ -444,7 +475,6 @@
                 }
             }
             
-            // If not found, try iOS format (after "Passenger & Meal Count")
             if (startIndex === -1) {
                 for (let i = 0; i < lines.length; i++) {
                     if (lines[i] === 'Passenger & Meal Count' || lines[i].includes('Passenger & Meal Count')) {
@@ -459,23 +489,19 @@
             const titles = ['MR', 'MS', 'MRS', 'MISS', 'MSTR', 'DATO', 'DATIN', 'DTUK', 'TSRI', 'MDM', 'DR', 'PROF'];
             const tiers = ['ELIT', 'PLAT', 'GOLD', 'RUBY', 'SLVR', 'BLUE', 'SAPH', 'EMER'];
             
-            // Parse passengers - each passenger's data is in sequence vertically
             let i = startIndex;
             while (i < lines.length) {
                 const line = lines[i];
                 
-                // Stop at end marker
                 if (line.includes('-- END of PAX List') || (line.includes('Showing') && line.includes('entries'))) {
                     break;
                 }
                 
-                // Skip section divider
                 if (line === '-- CUT HERE --') {
                     i++;
                     continue;
                 }
                 
-                // Start of a passenger record
                 const passenger = {
                     title: '',
                     name: '',
@@ -487,14 +513,12 @@
                     meal: ''
                 };
                 
-                // Check if current line is a title
                 if (titles.includes(line)) {
                     passenger.title = line;
                     i++;
                     if (i >= lines.length) break;
                 }
                 
-                // Next should be name (has /)
                 if (i < lines.length && lines[i].includes('/')) {
                     passenger.name = lines[i];
                     i++;
@@ -503,11 +527,9 @@
                     continue;
                 }
                 
-                // Collect remaining fields
                 while (i < lines.length) {
                     const field = lines[i];
                     
-                    // Stop if we hit next passenger
                     if (titles.includes(field) || field.includes('/')) {
                         break;
                     }
@@ -516,24 +538,38 @@
                         break;
                     }
                     
-                    // Parse field by pattern
-                    if (!passenger.seat && /^\d{2}[A-K]$/i.test(field)) {
+                    if (!passenger.seat && SEAT_PATTERN.test(field)) {
                         passenger.seat = field.toUpperCase();
                     }
-                    else if (!passenger.pnr && /^[A-Z0-9]{6,7}$/i.test(field)) {
+                    else if (!passenger.pnr && PNR_PATTERN.test(field)) {
                         passenger.pnr = field.toUpperCase();
                     }
-                    else if (!passenger.class && /^[JY]$/i.test(field)) {
+                    else if (!passenger.class && CLASS_PATTERN.test(field)) {
                         passenger.class = field.toUpperCase();
                     }
-                    else if (!passenger.fqtv && (/^\d{6,12}$/.test(field) || /^MH\d+$/i.test(field))) {
+                    else if (!passenger.fqtv && FQTV_PATTERN.test(field)) {
                         passenger.fqtv = field;
                     }
                     else if (!passenger.tier && tiers.includes(field.toUpperCase())) {
                         passenger.tier = field.toUpperCase();
                     }
-                    else if (!passenger.meal && /^[A-Z]{4}$/i.test(field) && field.toUpperCase().endsWith('ML')) {
-                        passenger.meal = field.toUpperCase();
+                    else if (!passenger.meal && field.toUpperCase().includes('ML')) {
+                        const upperField = field.toUpperCase();
+                        
+                        if (upperField.includes(',')) {
+                            const potentialMeals = upperField.split(',').map(m => m.trim());
+                            const validMeals = potentialMeals.filter(m => 
+                                /^[A-Z]{4}$/i.test(m) && m.endsWith('ML')
+                            );
+                            
+                            if (validMeals.length > 0) {
+                                passenger.meal = validMeals.join(',');
+                            }
+                        } else {
+                            if (/^[A-Z]{4}$/i.test(upperField) && upperField.endsWith('ML')) {
+                                passenger.meal = upperField;
+                            }
+                        }
                     }
                     
                     i++;
@@ -590,88 +626,21 @@
                 return;
             }
             
-            // Debug: Show raw input info
-            const lines = input.split('\n');
-            let debugInfo = `<div class="error" style="font-size: 10px; max-height: 300px; overflow-y: auto;">`;
-            debugInfo += `<strong>Debug Info (Platform: ${navigator.platform}):</strong><br>`;
-            debugInfo += `Browser: ${navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? 'iOS Safari/Chrome' : 'Other'}<br>`;
-            debugInfo += `iOS Device: ${/iPhone|iPad|iPod/.test(navigator.userAgent) ? 'YES' : 'NO'}<br>`;
-            debugInfo += `Raw input length: ${input.length} chars<br>`;
-            debugInfo += `Contains \\r\\n: ${input.includes('\r\n') ? 'YES' : 'NO'}<br>`;
-            debugInfo += `Contains \\r: ${input.includes('\r') ? 'YES' : 'NO'}<br>`;
-            debugInfo += `Contains \\n: ${input.includes('\n') ? 'YES' : 'NO'}<br>`;
-            debugInfo += `Has zero-width chars: ${/[\u200B-\u200D\uFEFF]/.test(input) ? 'YES' : 'NO'}<br>`;
-            debugInfo += `Total lines in input: ${lines.length}<br>`;
-            debugInfo += `First 20 lines:<br>`;
-            for (let i = 0; i < Math.min(20, lines.length); i++) {
-                const cleanLine = lines[i].replace(/\r/g, '').trim();
-                debugInfo += `Line ${i}: "${cleanLine}" (length: ${cleanLine.length})<br>`;
-            }
-            
-            // Find MEALS header
-            let mealsIndex = -1;
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].trim() === 'MEALS') {
-                    mealsIndex = i;
-                    break;
-                }
-            }
-            
-            // If not found, try finding "Passenger & Meal Count" (iOS format)
-            if (mealsIndex === -1) {
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].includes('Passenger & Meal Count')) {
-                        mealsIndex = i;
-                        break;
-                    }
-                }
-            }
-            
-            debugInfo += `<br>Data start marker found at line: ${mealsIndex}<br>`;
-            
-            if (mealsIndex !== -1 && mealsIndex + 1 < lines.length) {
-                debugInfo += `Next 10 lines after MEALS:<br>`;
-                for (let i = mealsIndex + 1; i < Math.min(mealsIndex + 11, lines.length); i++) {
-                    const line = lines[i].trim();
-                    debugInfo += `Line ${i}: "${line}"<br>`;
-                    if (line.includes('/')) {
-                        debugInfo += `  → Contains name!<br>`;
-                    }
-                }
-            }
-            debugInfo += `</div>`;
-            
             try {
                 const { flightInfo, passengers } = parseManifest(input);
                 
-                debugInfo += `<div class="error">`;
-                debugInfo += `<strong>Parse Results:</strong><br>`;
-                debugInfo += `Total passengers parsed: ${passengers.length}<br>`;
-                debugInfo += `Flight: ${flightInfo.flightNumber}<br>`;
-                if (passengers.length > 0) {
-                    debugInfo += `First passenger: ${JSON.stringify(passengers[0])}<br>`;
-                    const withMeals = passengers.filter(p => p.meal).length;
-                    const withTier = passengers.filter(p => p.tier === 'EMER' || p.tier === 'PLAT').length;
-                    debugInfo += `Passengers with meals: ${withMeals}<br>`;
-                    debugInfo += `Passengers with EMER/PLAT: ${withTier}<br>`;
-                }
-                debugInfo += `</div>`;
-                
-                // Filter passengers
                 const filtered = passengers.filter(p => 
                     p.meal || p.tier === 'EMER' || p.tier === 'PLAT'
                 );
                 
                 if (filtered.length === 0) {
-                    output.innerHTML = debugInfo + '<div class="error">No passengers found with special meals or EMER/PLAT tier.</div>';
+                    output.innerHTML = '<div class="error">No passengers found with special meals or EMER/PLAT tier.</div>';
                     printBtn.style.display = 'none';
                     return;
                 }
                 
-                // Detect aircraft type
                 const aircraftType = detectAircraftType(passengers);
                 
-                // Sort by seat number and class
                 const sortBySeat = (a, b) => {
                     if (a.class !== b.class) return a.class === 'J' ? -1 : 1;
                     return getSeatRowNumber(a.seat) - getSeatRowNumber(b.seat);
@@ -691,22 +660,29 @@
                     starboardPassengers.sort(sortBySeat);
                 }
                 
-                // Calculate statistics
                 const specialMealCount = filtered.filter(p => p.meal).length;
                 const tierCount = filtered.filter(p => p.tier === 'EMER' || p.tier === 'PLAT').length;
                 
+                let bbmlCount = 0;
                 const mealCounts = {};
                 filtered.forEach(p => {
                     if (p.meal) {
-                        mealCounts[p.meal] = (mealCounts[p.meal] || 0) + 1;
+                        const meals = p.meal.split(',').map(m => m.trim());
+                        meals.forEach(meal => {
+                            if (meal === 'BBML') {
+                                bbmlCount++;
+                            } else if (meal) {
+                                mealCounts[meal] = (mealCounts[meal] || 0) + 1;
+                            }
+                        });
                     }
                 });
+                
                 const mealBreakdown = Object.entries(mealCounts)
                     .sort((a, b) => b[1] - a[1])
                     .map(([meal, count]) => `${meal}: ${count}`)
                     .join(', ');
                 
-                // Generate HTML
                 let html = '';
                 
                 if (aircraftType === 'narrowbody') {
@@ -716,15 +692,21 @@
                 html += `<div class="flight-info">Flight: ${flightInfo.flightNumber} | Route: ${flightInfo.sector} | Date: ${flightInfo.date} ${flightInfo.stdLocal} | ACFT: ${flightInfo.aircraft}</div>`;
                 
                 html += `<div class="stats">`;
-                html += `<strong>Summary:</strong> Special Meals: ${specialMealCount} | EMER/PLAT: ${tierCount}<br>`;
+                html += `<strong>Summary:</strong> Special Meals: ${specialMealCount} | EMER/PLAT: ${tierCount}`;
+                if (bbmlCount > 0) {
+                    html += ` | Infants (BBML): ${bbmlCount}`;
+                }
+                html += `<br>`;
                 html += `<strong>Meal Breakdown:</strong> ${mealBreakdown || 'None'}`;
+                if (bbmlCount > 0) {
+                    html += ` | BBML: ${bbmlCount}`;
+                }
                 html += `</div>`;
                 
                 if (aircraftType === 'narrowbody') {
                     html += `</div>`;
                 }
                 
-                // Apply compact layout class for printing if many passengers
                 const compactClass = filtered.length > 50 ? 'compact-layout' : '';
                 const veryCompactClass = filtered.length > 100 ? 'very-compact' : '';
                 
@@ -759,11 +741,22 @@
                     html += `<thead><tr><th>TITLE</th><th>NAME</th><th>TIER</th><th>MEAL</th></tr></thead>`;
                     html += `<tbody>`;
                     unassigned.forEach(p => {
+                        const meals = parseMealField(p.meal);
+                        let mealDisplay = '';
+                        
+                        if (meals.parent && meals.infant) {
+                            mealDisplay = `<strong>${meals.parent}</strong><span class="infant-meal">(+${meals.infant})</span>`;
+                        } else if (meals.parent) {
+                            mealDisplay = `<strong>${meals.parent}</strong>`;
+                        } else if (meals.infant) {
+                            mealDisplay = `<strong>${meals.infant}</strong>`;
+                        }
+                        
                         html += `<tr>`;
                         html += `<td>${p.title}</td>`;
                         html += `<td>${p.name}</td>`;
                         html += `<td><strong>${p.tier}</strong></td>`;
-                        html += `<td><strong>${p.meal}</strong></td>`;
+                        html += `<td>${mealDisplay}</td>`;
                         html += `</tr>`;
                     });
                     html += `</tbody></table>`;
@@ -779,7 +772,7 @@
                 document.querySelector('.input-section').style.display = 'none';
                 
             } catch (error) {
-                output.innerHTML = debugInfo + `<div class="error">Error parsing manifest: ${error.message}</div>`;
+                output.innerHTML = `<div class="error">Error parsing manifest: ${error.message}<br><br>Please make sure you copied the complete passenger list from BPM.</div>`;
                 printBtn.style.display = 'none';
                 console.error(error);
             }
@@ -803,6 +796,17 @@
                 }
                 lastClass = p.class;
                 
+                const meals = parseMealField(p.meal);
+                let mealDisplay = '';
+                
+                if (meals.parent && meals.infant) {
+                    mealDisplay = `<strong>${meals.parent}</strong><span class="infant-meal">(+${meals.infant})</span>`;
+                } else if (meals.parent) {
+                    mealDisplay = `<strong>${meals.parent}</strong>`;
+                } else if (meals.infant) {
+                    mealDisplay = `<strong>${meals.infant}</strong>`;
+                }
+                
                 html += `<tr>`;
                 if (showSeat) {
                     html += `<td><strong>${p.seat}</strong></td>`;
@@ -810,7 +814,7 @@
                 html += `<td>${p.title}</td>`;
                 html += `<td>${p.name}</td>`;
                 html += `<td><strong>${p.tier}</strong></td>`;
-                html += `<td><strong>${p.meal}</strong></td>`;
+                html += `<td>${mealDisplay}</td>`;
                 html += `</tr>`;
             });
             
@@ -824,6 +828,23 @@
             document.getElementById('printOutputBtn').style.display = 'none';
             document.querySelector('.input-section').style.display = 'block';
         }
-    </script>
-</body>
-</html>
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const textarea = document.getElementById('manifestInput');
+                if (textarea.value.trim()) {
+                    e.preventDefault();
+                    generateReport();
+                }
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                const reportContent = document.getElementById('reportContent');
+                if (reportContent.innerHTML.trim()) {
+                    e.preventDefault();
+                    window.print();
+                }
+            }
+        });
+        </script>
+        </body>
+        </html>
